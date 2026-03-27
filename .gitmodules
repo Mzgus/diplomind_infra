@@ -1,0 +1,6 @@
+[submodule "diplomind_fe"]
+	path = diplomind_fe
+	url = https://github.com/Mzgus/diplomind_fe.git
+[submodule "diplomind_be"]
+	path = diplomind_be
+	url = https://github.com/Mzgus/diplomind_be.git
