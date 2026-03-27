@@ -1,104 +1,101 @@
-# Diplomind - Infrastructure d'Orchestration
+# Déploiement en Production sur Debian
 
-Ce dépôt centralise l'orchestration du projet Diplomind. Il lie le backend (`diplomind_be`) et le frontend (`diplomind_fe`) via des submodules Git et gère leur exécution conjointe via Docker Compose.
+Ce guide détaille pas à pas l'installation depuis une machine Debian vierge. Il suit la documentation officielle de Docker et orchestre l'ensemble du projet Diplomind (Backend + Frontend).
 
-## Prérequis
+---
 
-- [Docker](https://docs.docker.com/get-docker/) & Docker Compose
-- [Git](https://git-scm.com/)
-- [Just](https://github.com/casey/just) (Optionnel, facilitateur de commandes)
+## 1. Installation de Docker et Git
 
-## 1. Récupération du projet
+Exécutez les commandes suivantes pour installer la dernière version officielle de Docker Engine sur Debian.
 
-Clonage initial avec initialisation des submodules :
-
+### Désinstaller les anciens paquets (Optionnel)
 ```bash
-git clone --recursive https://github.com/Mzgus/diplomind_infra.git
-cd diplomind_infra
+for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove $pkg; done
 ```
 
-Si le dépôt a déjà été cloné sans l'option `--recursive`, initialiser les submodules manuellement :
-
+### Ajouter la clé GPG officielle de Docker
 ```bash
-git submodule update --init --recursive
+sudo apt-get update
+sudo apt-get install ca-certificates curl git
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
 ```
 
-## 2. Configuration de l'environnement
+### Ajouter le dépôt Docker aux sources APT
+```bash
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-Créer le fichier de variables d'environnement central.
+sudo apt-get update
+```
+
+### Installer Docker et ses plugins (dont Docker Compose)
+```bash
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+*(Optionnel)* Permettre l'usage de docker sans `sudo` :
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+---
+
+## 2. Récupération du projet (Le Dépôt d'Orchestration)
+
+Le clonage intègre le Frontend et le Backend automatiquement grâce à l'option `--recursive`.
+
+```bash
+git clone --recursive <URL_DE_VOTRE_DEPOT_INFRA>
+cd cda_project
+```
+
+## 3. Configuration de l'environnement
+
+Créez le fichier de variables d'environnement central :
 
 ```bash
 cp .env.template .env
+nano .env
 ```
 
-Éditer `.env` avec les valeurs de production appropriées (mots de passe forts, secrets cryptographiques réels).
-
+**Exemple de contenu pour `.env` :**
 ```env
-POSTGRES_USER="user_prod"
-POSTGRES_PASSWORD="password_prod_securise"
-POSTGRES_DB="diplomind_db_prod"
+POSTGRES_USER="diplomind_user"
+POSTGRES_PASSWORD="MotDePasseTresSecuriseEtLong"
+POSTGRES_DB="diplomind_db"
 
-# Les conteneurs communiquent via le réseau interne Docker, l'URL de la base 
-# pour l'API doit pointer vers le service "db" défini dans le docker-compose.yml
+# IMPORTANT: Sur l'orchestrateur, le backend cible le service Docker nommé "db"
 DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
 
-JWT_SECRET="secret_complexe_unique"
-COOKIE_NAME="auth_cookie_prod"
+# Sécurité de l'application
+JWT_SECRET="CleSecreteComplexePourLesTokens"
+COOKIE_NAME="auth_cookie_diplomind"
 ```
 
-## 3. Déploiement en Production
+## 4. Lancement de l'Infrastructure
 
-Construire et lancer les services en arrière-plan :
+Une fois le `.env` prêt, lancez la construction et le déploiement des 3 conteneurs (Base de données, API Backend, Frontend) :
 
-**Avec Docker Compose natif :**
 ```bash
 docker compose up -d --build
 ```
 
-**Avec Just :**
-```bash
-just build
-```
-
-Vérifier l'état des services :
+Vérifiez que les services tournent sans erreur :
 ```bash
 docker compose ps
 docker compose logs -f
 ```
 
-## 4. Initialisation de la base de données (Si nécessaire)
+## 5. (Optionnel) Ajout des données de Base
 
-Lors du premier lancement, le schéma de la base de données est créé automatiquement via les fichiers dans `diplomind_be/mig/`.
+Au premier lancement, la structure (schéma `01.sql`) de la base de données est créée automatiquement. Si vous souhaitez injecter des données de test existantes dans le conteneur en cours d'exécution :
 
-S'il est nécessaire d'injecter des données initiales (seeding) sur l'environnement :
-
-**Avec Docker Compose natif :**
 ```bash
-cat diplomind_be/seed/seed.sql | docker exec -i diplomind_db psql -U <POSTGRES_USER> -d <POSTGRES_DB>
+cat diplomind_be/seed/seed.sql | docker exec -i diplomind_db psql -U diplomind_user -d diplomind_db
 ```
-
-**Avec Just :**
-```bash
-just seed
-```
-
-## 5. Mise à jour en Production
-
-Pour déployer une nouvelle version depuis les dépôts distants des submodules :
-
-1. Mettre à jour les références des submodules vers le dernier commit distant :
-```bash
-git submodule update --remote
-```
-
-2. Reconstruire et relancer les conteneurs :
-```bash
-docker compose up -d --build
-```
-
-3. (Optionnel) Commit la nouvelle référence dans ce dépôt d'orchestration :
-```bash
-git add diplomind_be diplomind_fe
-git commit -m "chore: update submodules to latest versions"
-git push origin main
-```
+*(Remplacez `diplomind_user` et `diplomind_db` par les valeurs de votre `.env`)*
