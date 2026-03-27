@@ -51,7 +51,7 @@ Le clonage intègre le Frontend et le Backend automatiquement grâce à l'option
 
 ```bash
 git clone --recursive https://github.com/Mzgus/diplomind_infra.git
-cd cda_project
+cd diplomind_infra
 ```
 
 ## 3. Configuration de l'environnement
