@@ -50,8 +50,8 @@ newgrp docker
 Le clonage intègre le Frontend et le Backend automatiquement grâce à l'option `--recursive`.
 
 ```bash
-git clone --recursive <URL_DE_VOTRE_DEPOT_INFRA>
-cd cda_project
+git clone --recursive https://github.com/Mzgus/diplomind_infra.git
+cd diplomind_infra
 ```
 
 ## 3. Configuration de l'environnement
