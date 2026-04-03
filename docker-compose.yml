@@ -6,6 +6,7 @@ services:
     shm_size: 128mb
     volumes:
       - ./diplomind_be/mig:/docker-entrypoint-initdb.d/:ro
+      - ./diplomind_be/seed:/seed
       - pg_data:/var/lib/postgresql
     environment:
       POSTGRES_USER: $POSTGRES_USER

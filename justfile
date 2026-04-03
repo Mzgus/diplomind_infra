@@ -18,7 +18,7 @@ logs:
 
 # Injecter les données de test (Seed) dans la base de données
 seed:
-	cat diplomind_be/seed/seed.sql | docker exec -i diplomind_db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+	docker exec diplomind_db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f /seed/seed.sq
 
 # Accéder à la console Postgres
 psql:
