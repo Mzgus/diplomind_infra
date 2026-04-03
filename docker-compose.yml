@@ -8,13 +8,13 @@ services:
       - ./diplomind_be/mig:/docker-entrypoint-initdb.d/:ro
       - pg_data:/var/lib/postgresql
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
     networks:
       - diplomind_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,9 +29,9 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      JWT_SECRET: ${JWT_SECRET}
-      COOKIE_NAME: ${COOKIE_NAME}
+      DATABASE_URL: postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/$POSTGRES_DB
+      JWT_SECRET: $JWT_SECRET
+      COOKIE_NAME: $COOKIE_NAME
     ports:
       - "3000:3000"
     networks:
@@ -53,7 +53,7 @@ services:
 
 volumes:
   pg_data:
-    name: diplomind
+    name: diplomind_infra
 
 networks:
   diplomind_network:
