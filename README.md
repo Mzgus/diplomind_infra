@@ -96,6 +96,8 @@ docker compose logs -f
 Au premier lancement, la structure (schéma `01.sql`) de la base de données est créée automatiquement. Si vous souhaitez injecter des données de test existantes dans le conteneur en cours d'exécution :
 
 ```bash
-cat diplomind_be/seed/seed.sql | docker exec -i diplomind_db psql -U diplomind_user -d diplomind_db
+cat diplomind_be/seed/seed.sql | docker exec -i diplomind_db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+ou
+just seed
 ```
 *(Remplacez `diplomind_user` et `diplomind_db` par les valeurs de votre `.env`)*
