@@ -97,7 +97,45 @@ Au premier lancement, la structure (schéma `01.sql`) de la base de données est
 
 ```bash
 cat diplomind_be/seed/seed.sql | docker exec -i diplomind_db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB}
-ou
-just seed
 ```
 *(Remplacez `diplomind_user` et `diplomind_db` par les valeurs de votre `.env`)*
+
+---
+
+## 6. Sécurisation du serveur (Pare-feu UFW)
+
+Pour sécuriser votre instance Debian, il est fortement recommandé d'utiliser un pare-feu pour fermer tous les ports non essentiels. Nous utilisons `ufw` (Uncomplicated Firewall).
+
+**Note sur l'architecture** : L'API Backend n'est pas exposée directement sur internet. Elle est accessible via le Frontend qui agit comme un reverse proxy. Seul le port du Frontend doit être ouvert.
+
+### Installation de UFW
+```bash
+sudo apt-get update
+sudo apt-get install ufw
+```
+
+### Configuration des règles
+Par défaut, nous bloquons tout le trafic entrant et autorisons tout le trafic sortant.
+
+```bash
+# Réinitialiser les règles par défaut
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Autoriser SSH (CRUCIAL : ne vous enfermez pas dehors)
+sudo ufw allow 22/tcp
+
+# Autoriser uniquement le port du Frontend (React + Proxy API)
+sudo ufw allow 5173/tcp
+```
+
+### Activation du pare-feu
+```bash
+sudo ufw enable
+```
+*(Répondez `y` pour confirmer l'activation)*
+
+### Vérification du statut
+```bash
+sudo ufw status verbose
+```
