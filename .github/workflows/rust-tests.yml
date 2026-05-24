@@ -73,4 +73,4 @@ jobs:
           exit 1
 
       - name: Run tests
-        run: cargo test --manifest-path diplomind_be/Cargo.toml
+        run: cargo test --manifest-path diplomind_be/Cargo.toml -- --test-threads=1
