@@ -59,7 +59,7 @@ jobs:
 
       - name: Start backend server in background
         run: |
-          cargo run --manifest-path diplomind_be/Cargo.toml &
+          cargo run --manifest-path diplomind_be/Cargo.toml --bin diplomind &
           # Wait for the backend to start responding
           for i in {1..30}; do
             if curl -s http://localhost:3000/ > /dev/null; then
