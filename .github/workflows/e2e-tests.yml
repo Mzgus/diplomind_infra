@@ -76,7 +76,7 @@ jobs:
         
       - name: Install Playwright browsers
         working-directory: diplomind_fe
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps
 
       - name: Run Playwright tests
         working-directory: diplomind_fe
