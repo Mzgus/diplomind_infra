@@ -1,0 +1,91 @@
+name: E2E Tests (Playwright)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  e2e:
+    name: Run Playwright E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: diplomind_user
+          POSTGRES_PASSWORD: diplomind_password
+          POSTGRES_DB: diplomind_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://diplomind_user:diplomind_password@localhost:5432/diplomind_test
+      JWT_SECRET: CleSecreteComplexePourLesTokens
+      COOKIE_NAME: auth_cookie_diplomind
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: diplomind_fe/package-lock.json
+
+      - name: Set up Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-workdir: diplomind_be
+
+      - name: Initialize Database
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          PGPASSWORD=diplomind_password psql -h localhost -U diplomind_user -d diplomind_test -f diplomind_be/mig/01.sql
+          PGPASSWORD=diplomind_password psql -h localhost -U diplomind_user -d diplomind_test -f diplomind_be/seed/seed.sql
+
+      # 5. Build + lancer le backend
+      - name: Build and start backend
+        run: |
+          cargo build --manifest-path diplomind_be/Cargo.toml
+          cargo run --manifest-path diplomind_be/Cargo.toml --bin diplomind &
+          for i in {1..30}; do
+            if curl -s http://localhost:3000/ > /dev/null; then
+              echo "Backend is up!"
+              exit 0
+            fi
+            echo "Waiting for backend..."
+            sleep 1
+          done
+          echo "Backend failed to start"
+          exit 1
+
+      - name: Install frontend dependencies
+        working-directory: diplomind_fe
+        run: npm ci
+        
+      - name: Install Playwright browsers
+        working-directory: diplomind_fe
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: diplomind_fe
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: diplomind_fe/playwright-report/
+          retention-days: 7
