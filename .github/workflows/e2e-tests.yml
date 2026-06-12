@@ -73,6 +73,10 @@ jobs:
       - name: Install frontend dependencies
         working-directory: diplomind_fe
         run: npm ci
+
+      - name: Run frontend unit and integration tests
+        working-directory: diplomind_fe
+        run: npm run test
         
       - name: Install Playwright browsers
         working-directory: diplomind_fe
