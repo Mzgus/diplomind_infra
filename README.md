@@ -139,3 +139,95 @@ sudo ufw enable
 ```bash
 sudo ufw status verbose
 ```
+
+---
+
+## 7. Procédures de Tests (Serveur de Test / VM)
+
+Ces instructions supposent que vous avez déjà démarré l'infrastructure globale en production ou en développement à l'étape 4 :
+```bash
+# L'infrastructure complète (db, api, frontend) doit être active
+docker compose up -d --build
+```
+La base de données et l'API tournent donc déjà dans Docker et exposent les ports `5432` et `3000` sur la machine hôte.
+
+### Dépendances système de test à installer (sur la machine de test)
+Pour exécuter les tests localement sur la machine hôte, vous devez installer les outils de développement :
+
+#### 1. Installer la Toolchain Rust (rustup et cargo)
+```bash
+# Télécharger et installer rustup (répondez '1' pour l'installation par défaut)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Charger l'environnement cargo
+source $HOME/.cargo/env
+```
+
+#### 2. Installer Node.js & npm
+```bash
+# Ajouter le dépôt NodeSource pour Node.js 22 et installer
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+#### 🛠️ Résolution des erreurs de compilation sous Linux / WSL
+Si vous compilez sur Linux (ou WSL) et rencontrez des erreurs de type `linker 'cc' not found` ou `pkg-config could not be found`, installez les outils de compilation C et les en-têtes SSL :
+```bash
+sudo apt-get update && sudo apt-get install -y build-essential pkg-config libssl-dev
+```
+
+---
+
+## 8. Exécution des Tests
+
+### A. Tests du Backend (Unitaires et Intégration)
+Les tests d'intégration backend se connectent à la base de données. Comme la base de données tourne dans le conteneur Docker `diplomind_db` (qui mappe le port 5432 de l'hôte), vous devez **explicitement écraser la variable d'environnement `DATABASE_URL`** pour cibler `localhost` à la place de l'hôte interne Docker `db`.
+
+1. Naviguez dans le répertoire backend :
+   ```bash
+   cd diplomind_be
+   ```
+2. Lancez les tests en fournissant l'adresse de connexion sur `localhost` :
+   *   **Sur Linux / WSL / macOS :**
+       ```bash
+       DATABASE_URL="postgres://diplomind_user:MotDePasseTresSecuriseEtLong@localhost:5432/diplomind_db" cargo test -- --test-threads=1
+       ```
+   *   **Sur Windows (PowerShell) :**
+       ```powershell
+       $env:DATABASE_URL="postgres://diplomind_user:MotDePasseTresSecuriseEtLong@localhost:5432/diplomind_db"; cargo test -- --test-threads=1
+       ```
+3. **En cas d'échec d'un test** : Isolez le test ciblé avec le drapeau `--nocapture` :
+   ```bash
+   DATABASE_URL="postgres://diplomind_user:MotDePasseTresSecuriseEtLong@localhost:5432/diplomind_db" cargo test <nom_du_test> -- --nocapture
+   ```
+
+### B. Tests Unitaires du Frontend
+1. Naviguez dans le répertoire frontend et installez les dépendances :
+   ```bash
+   cd ../diplomind_fe
+   npm ci
+   ```
+2. Exécutez les tests d'interface via Vitest :
+   ```bash
+   npm run test
+   ```
+
+### C. Tests End-to-End (E2E Playwright)
+Les tests Playwright simulent les clics utilisateur sur l'interface graphique. Ils nécessitent que l'API et le frontend tournent en arrière-plan.
+
+1. Assurez-vous d'avoir installé les pilotes de navigateurs Playwright :
+   ```bash
+   npx playwright install --with-deps
+   ```
+2. Lancez les tests E2E :
+   ```bash
+   # Lancement des scénarios en ligne de commande
+   npm run test:e2e
+   
+   # Ou en mode graphique interactif pour déboguer
+   npm run test:e2e:ui
+   ```
+3. **En cas d'échec d'un test E2E** : Ouvrez le rapport généré pour visualiser les captures d'écran et vidéos de l'échec :
+   ```bash
+   npm run test:e2e:report
+   ```
